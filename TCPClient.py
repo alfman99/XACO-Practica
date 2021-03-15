@@ -13,18 +13,13 @@ clientSocket = socket(AF_INET, SOCK_STREAM)
 clientSocket.connect((serverName,serverPort))
 
 # Read in some text from the user
-command = ""
+sendPack = input("Input (Example: GET hola.txt): ")
 
-while command.upper() != "GET" and command.upper() != "PUT":
-    command = input('Command: ')
-
-fileName = input("Filename: ")
-
-sendPack = command + " " + fileName
+commands = sendPack.split(" ")
 
 clientSocket.send(sendPack.encode())
 
-if command.upper() == "GET":
+if commands[0].upper() == "GET":
     # queremos recibir un archivo del servidor
     data = clientSocket.recv(CHUNK_SIZE)
 
@@ -39,7 +34,7 @@ if command.upper() == "GET":
     if error == "ERROR_NO_FILE":
         print("404, The file doesn't exist")
     else:
-        file = open(fileName, "wb")
+        file = open(commands[1], "wb")
         print("DOWNLOADING BYTES: ")
         while data:
             print(data)
@@ -47,10 +42,10 @@ if command.upper() == "GET":
             data = clientSocket.recv(CHUNK_SIZE)
         file.close()
 
-elif command.upper() == "PUT":
+elif commands[0].upper() == "PUT":
         # queremos mandar un archivo al servidor
         try:
-            file = open(fileName, "rb")
+            file = open(commands[1], "rb")
             data = file.read(CHUNK_SIZE)
             print("UPLOADING BYTES: ")
             while data:

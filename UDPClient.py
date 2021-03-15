@@ -10,18 +10,13 @@ CHUNK_SIZE = 2048
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 
 # Read in some text from the user
-command = ""
+sendPack = input("Input (Example: GET hola.txt): ")
 
-while command.upper() != "GET" and command.upper() != "PUT":
-    command = input('Command: ')
-
-fileName = input("Filename: ")
-
-sendPack = command + " " + fileName
+commands = sendPack.split(" ")
 
 clientSocket.sendto(sendPack.encode(), (serverName,serverPort))
 
-if command.upper() == "GET":
+if commands[0].upper() == "GET":
     # queremos recibir un archivo del servidor
     data, _ = clientSocket.recvfrom(CHUNK_SIZE)
 
@@ -36,7 +31,7 @@ if command.upper() == "GET":
     if error == "ERROR_NO_FILE":
         print("404, The file doesn't exist")
     else:
-        file = open(fileName + "2", "wb")
+        file = open(commands[1], "wb")
         dData = None
         print("DOWNLOADING BYTES: ")
         while data and dData != "END":
@@ -49,20 +44,19 @@ if command.upper() == "GET":
                 pass
         file.close()
 
-elif command.upper() == "PUT":
+elif commands[0].upper() == "PUT":
         # queremos mandar un archivo al servidor
         try:
-            file = open(fileName, "rb")
+            file = open(commands[1], "rb")
             data = file.read(CHUNK_SIZE)
             print("UPLOADING BYTES: ")
             while data:
                 print(data)
                 clientSocket.sendto(data, (serverName,serverPort))
                 data = file.read(CHUNK_SIZE)
-            clientSocket.sendto("END", (serverName,serverPort))
+            clientSocket.sendto("END".encode(), (serverName,serverPort))
             file.close()
         except Exception as e:
-            print(str(e))
             print("404, The file doesn't exist")
             clientSocket.sendto("ABORT".encode(), (serverName,serverPort))
 else:
