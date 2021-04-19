@@ -4,19 +4,27 @@ from socket import *
 # Default to running on localhost, port 12000
 serverName = 'localhost'
 serverPort = 12000
-CHUNK_SIZE = 2048
 
 # Request IPv4 and TCP communication
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 
-# Read in some text from the user
-sendPack = input("Input (Example: GET hola.txt): ")
+condiciones = False
+while not condiciones:
+    # Read in some text from the user
+    sendPack = input("Input (Example: GET hola.txt 32): ")
 
-commands = sendPack.split(" ")
+    commands = sendPack.split(" ")
+    
+    method = commands[0]
+    filename = commands[1]
+    CHUNK_SIZE = int(commands[2])
 
-clientSocket.sendto(sendPack.encode(), (serverName,serverPort))
+    if CHUNK_SIZE == 32 or CHUNK_SIZE == 64 or CHUNK_SIZE == 128 or CHUNK_SIZE == 256 or CHUNK_SIZE == 512 or CHUNK_SIZE == 1024 or CHUNK_SIZE == 2048:
+        condiciones = True
 
-if commands[0].upper() == "GET":
+clientSocket.sendto(sendPack.encode(), (serverName, serverPort))
+
+if method.upper() == "GET":
     # queremos recibir un archivo del servidor
     data, _ = clientSocket.recvfrom(CHUNK_SIZE)
 
@@ -31,7 +39,7 @@ if commands[0].upper() == "GET":
     if error == "ERROR_NO_FILE":
         print("404, The file doesn't exist")
     else:
-        file = open(commands[1], "wb")
+        file = open(filename, "wb")
         dData = None
         print("DOWNLOADING BYTES: ")
         while data and dData != "END":
@@ -44,10 +52,10 @@ if commands[0].upper() == "GET":
                 pass
         file.close()
 
-elif commands[0].upper() == "PUT":
+elif method.upper() == "PUT":
         # queremos mandar un archivo al servidor
         try:
-            file = open(commands[1], "rb")
+            file = open(filename, "rb")
             data = file.read(CHUNK_SIZE)
             print("UPLOADING BYTES: ")
             while data:

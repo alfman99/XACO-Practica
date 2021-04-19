@@ -13,13 +13,17 @@ serverSocket.bind(('', serverPort))
 
 print ('El Servidor esta listo para recibir')
 while True:
-	clientMSG, clientAddr = serverSocket.recvfrom(CHUNK_SIZE)
+	clientMSG, clientAddr = serverSocket.recvfrom(128) # tamaño arbitrariamente grande
 	clientMSG = clientMSG.decode().split(" ")
 
-	if clientMSG[0].upper() == "GET":
+	method = clientMSG[0]
+	filename = clientMSG[1]
+	CHUNK_SIZE = int(clientMSG[2])
+
+	if method.upper() == "GET":
 		# queremos mandar el archivo al cliente
 		try:
-			file = open(clientMSG[1], "rb")
+			file = open(filename, "rb")
 			data = file.read(CHUNK_SIZE)
 			print("UPLOADING BYTES: ")
 			while data:
@@ -31,7 +35,7 @@ while True:
 		except:
 			serverSocket.sendto("ERROR_NO_FILE".encode(), clientAddr)
 
-	elif clientMSG[0].upper() == "PUT":
+	elif method.upper() == "PUT":
 		# queremos recibir el archivo que nos manda el cliente
 			data, clientAddr = serverSocket.recvfrom(CHUNK_SIZE)
 			dData = None
@@ -40,7 +44,7 @@ while True:
 			except:
 				pass
 			if dData != "ABORT":
-				file = open(clientMSG[1], "wb")
+				file = open(filename, "wb")
 				dData = None
 				print("DOWNLOADING BYTES: ")
 				while data and dData != "END":
