@@ -3,7 +3,6 @@ from socket import *
 
 # Default port number server will listen on
 serverPort = 12000
-CHUNK_SIZE = 2048
 
 # Request IPv4 and TCP communication
 serverSocket = socket(AF_INET, SOCK_STREAM)
@@ -17,13 +16,17 @@ print ('El Servidor esta listo para recibir')
 while True:
 	connectionSocket, addr = serverSocket.accept()
 
-	clientMSG = connectionSocket.recv(CHUNK_SIZE).decode()
+	clientMSG = connectionSocket.recv(128).decode()
 	clientMSG = clientMSG.split(" ")
 
-	if clientMSG[0].upper() == "GET":
+	method = clientMSG[0]
+	filename = clientMSG[1]
+	CHUNK_SIZE = int(clientMSG[2])
+
+	if method.upper() == "GET":
 		# queremos mandar el archivo al cliente
 		try:
-			file = open(clientMSG[1], "rb")
+			file = open(filename, "rb")
 			data = file.read(CHUNK_SIZE)
 			print("UPLOADING BYTES: ")
 			while data:
@@ -34,7 +37,7 @@ while True:
 		except:
 			connectionSocket.send("ERROR_NO_FILE".encode())
 
-	elif clientMSG[0].upper() == "PUT":
+	elif method.upper() == "PUT":
 		# queremos recibir el archivo que nos manda el cliente
 			data = connectionSocket.recv(CHUNK_SIZE)
 
@@ -46,7 +49,7 @@ while True:
 				pass
 
 			if error != "ABORT":
-				file = open(clientMSG[1], "wb")
+				file = open(filename, "wb")
 				print("DOWNLOADING BYTES: ")
 				while data:
 					print(data)
