@@ -2,7 +2,7 @@
 from socket import *
 
 # Default to running on localhost, port 12000
-serverName = 'localhost'
+serverName = '192.168.60.254'
 serverPort = 12000
 
 # Request IPv4 and TCP communication
@@ -72,3 +72,4 @@ else:
     # error no deberia pasar
 
 clientSocket.close()
+

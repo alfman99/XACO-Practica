@@ -3,21 +3,18 @@ from socket import *
 
 # Default port number server will listen on
 serverPort = 12000
+CHUNK_SIZE = 2048
 
 # Request IPv4 and TCP communication
-serverSocket = socket(AF_INET, SOCK_STREAM)
+serverSocket = socket(AF_INET, SOCK_DGRAM)
 
 # The welcoming port that clients first use to connect
 serverSocket.bind(('', serverPort))
 
-# Start listening on the welcoming port
-serverSocket.listen(1)
 print ('El Servidor esta listo para recibir')
 while True:
-	connectionSocket, addr = serverSocket.accept()
-
-	clientMSG = connectionSocket.recv(128).decode()
-	clientMSG = clientMSG.split(" ")
+	clientMSG, clientAddr = serverSocket.recvfrom(256) # tamanyo arbitrariamente grande para recibir la primera informacion
+	clientMSG = clientMSG.decode().split(" ")
 
 	method = clientMSG[0]
 	filename = clientMSG[1]
@@ -31,33 +28,34 @@ while True:
 			print("UPLOADING BYTES: ")
 			while data:
 				print(data)
-				connectionSocket.send(data)
+				serverSocket.sendto(data, clientAddr)
 				data = file.read(CHUNK_SIZE)
 			file.close()
+			serverSocket.sendto("END".encode(), clientAddr)
 		except:
-			connectionSocket.send("ERROR_NO_FILE".encode())
+			serverSocket.sendto("ERROR_NO_FILE".encode(), clientAddr)
 
 	elif method.upper() == "PUT":
 		# queremos recibir el archivo que nos manda el cliente
-			data = connectionSocket.recv(CHUNK_SIZE)
-
-			error = None
-
+			data, clientAddr = serverSocket.recvfrom(CHUNK_SIZE)
+			dData = None
 			try:
-				error = data.decode()
+				dData = data.decode()
 			except:
 				pass
-
-			if error != "ABORT":
+			if dData != "ABORT":
 				file = open(filename, "wb")
+				dData = None
 				print("DOWNLOADING BYTES: ")
-				while data:
+				while data and dData != "END":
 					print(data)
 					file.write(data)
-					data = connectionSocket.recv(CHUNK_SIZE)
+					data, clientAddr = serverSocket.recvfrom(CHUNK_SIZE)
+					try:
+						dData = data.decode()
+					except:
+						pass
 				file.close()
 	else:
-		connectionSocket.send("Error, invalid method".encode())
+		serverSocket.sendto("Error, invalid method".encode(), clientAddr)
 		# error no deberia pasar
-	
-	connectionSocket.close()

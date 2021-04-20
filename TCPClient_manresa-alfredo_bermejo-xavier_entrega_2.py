@@ -2,7 +2,7 @@
 from socket import *
 
 # Default to running on localhost, port 12000
-serverName = 'localhost'
+serverName = '192.168.60.254'
 serverPort = 12000
 
 # Request IPv4 and TCP communication
@@ -45,7 +45,7 @@ if method.upper() == "GET":
         file = open(filename + ".2", "wb")
         print("DOWNLOADING BYTES: ")
         while data:
-            print("nueva iteración")
+            print("nueva iteracion")
             print(data)
             file.write(data)
             data = clientSocket.recv(CHUNK_SIZE)
