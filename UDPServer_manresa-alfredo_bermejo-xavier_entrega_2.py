@@ -59,3 +59,16 @@ while True:
 	else:
 		serverSocket.sendto("Error, invalid method".encode(), clientAddr)
 		# error no deberia pasar
+
+def createDATA(numbloque, data):
+    packet = ''
+    packet += '03'
+    packet += numbloque
+    packet += data
+    return packet
+
+def createACK(numbloque):
+    packet = ''
+    packet += '04'
+    packet += numbloque
+    return packet

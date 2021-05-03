@@ -1,3 +1,4 @@
+
 # Example TCP socket client that connects to a server that upper cases text
 from socket import *
 
@@ -22,9 +23,12 @@ while not condiciones:
     if CHUNK_SIZE == 32 or CHUNK_SIZE == 64 or CHUNK_SIZE == 128 or CHUNK_SIZE == 256 or CHUNK_SIZE == 512 or CHUNK_SIZE == 1024 or CHUNK_SIZE == 2048:
         condiciones = True
 
-clientSocket.sendto(sendPack.encode(), (serverName, serverPort))
+
 
 if method.upper() == "GET":
+
+    clientSocket.sendto(createRRQ(filename, 'netascii').encode(), (serverName, serverPort))
+
     # queremos recibir un archivo del servidor
     data, _ = clientSocket.recvfrom(CHUNK_SIZE)
 
@@ -73,3 +77,36 @@ else:
 
 clientSocket.close()
 
+
+
+
+def createRRQ(nombrefichero, modo):
+    packet = ''
+    packet += '01'
+    packet += nombrefichero
+    packet += '0'
+    packet += modo
+    packet += '0'
+    return packet
+
+def createWRQ(nombrefichero, modo):
+    packet = ''
+    packet += '02'
+    packet += nombrefichero
+    packet += '0'
+    packet += modo
+    packet += '0'
+    return packet
+
+def createDATA(numbloque, data):
+    packet = ''
+    packet += '03'
+    packet += numbloque
+    packet += data
+    return packet
+    
+def createACK(numbloque):
+    packet = ''
+    packet += '04'
+    packet += numbloque
+    return packet
