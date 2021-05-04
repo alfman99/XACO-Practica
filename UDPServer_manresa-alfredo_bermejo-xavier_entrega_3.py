@@ -55,7 +55,7 @@ class Server:
 
     
 
-    file = open(filename + ".2", 'wb')
+    file = open(filename, 'wb')
 
     while True:
 
