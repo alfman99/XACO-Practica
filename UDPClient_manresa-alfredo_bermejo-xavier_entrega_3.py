@@ -1,6 +1,7 @@
 from socket import *
 import os
 import math
+import random
 
 class Client:
 
@@ -16,6 +17,8 @@ class Client:
     packet = self.createRRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
     print(packet)
     self.sendPacket(packet)
+
+    print('OACK packet: ', self.recvPacket(4))
 
     file = open(filename + ".2", "wb")
 
@@ -46,8 +49,7 @@ class Client:
     packet = self.createWRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
     self.sendPacket(packet)
 
-    serverACK = self.recvPacket(4)
-    print('Server ACK (packet): ', serverACK)
+    print('OACK packet: ', self.recvPacket(4))
 
     contadorPaquetesEnviados = 0
     contadorACK = 1
@@ -75,7 +77,6 @@ class Client:
       self.sendPacket(packet)
       serverACK = self.recvPacket(4)
       print('Num seq:', int.from_bytes(serverACK[2:4], 'big'))
-
 
   def extraEmpty(self, filename: str) -> bool:
     return (os.path.getsize(filename) % self.blockSize) == 0
@@ -129,6 +130,13 @@ class Client:
     packet += b'\0'
     return packet
 
+  def createOACK(self, blksize) -> bytearray:
+    packet = b''
+    packet += b'06'
+    packet += str(blksize).encode()
+    packet += b'\0'
+    return packet
+
   def createOPTIONS(self, options: list) -> bytearray:
     packet = b''
     for i in range(0, len(options), 2):
@@ -158,7 +166,7 @@ class Client:
 
 def main():
 
-  ipServer = "localhost" #input('ip server: ')
+  ipServer = "127.0.0.1" #input('ip server: ')
   portServer = 12000 #int(input('port server: '))
 
   

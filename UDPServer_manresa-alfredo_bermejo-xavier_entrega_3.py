@@ -25,8 +25,7 @@ class Server:
       mode = packetData[2]
       if len(packetData) == 5:
         self.blockSize = int(packetData[4])
-
-      print(packetType, filename, mode)
+        self.sendPacket(self.createOACK(self.blockSize))
 
       if packetType == '01':
         print('GET')
@@ -56,8 +55,8 @@ class Server:
       self.sendPacket(packet)
 
       clientACK = self.recvPacket(4)
-
-      print('Num seq:', contadorACK)
+      print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
+      
       contadorACK = (contadorACK % pow(2, 16)) + 1
       contadorPaquetesEnviados += 1
 
@@ -66,10 +65,9 @@ class Server:
       self.sendPacket(packet)
 
     clientACK = self.recvPacket(4)
+    print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
 
   def handlePUT(self, filename):
-    packet = self.createACK(0)
-    self.sendPacket(packet)
 
     file = open(filename + ".2", 'wb')
 
@@ -79,6 +77,8 @@ class Server:
 
       packetNum = int.from_bytes(data[2:4], 'big')
       packetData = data[4:]
+
+      print ('Num seq: ', packetNum)
 
       file.write(packetData)
 
@@ -108,18 +108,18 @@ class Server:
     packet = b''
     packet += b'01'
     packet += nombrefichero.encode()
-    packet += b'0'
+    packet += b'\0'
     packet += modo.encode()
-    packet += b'0'
+    packet += b'\0'
     return packet
 
   def createWRQ(self, nombrefichero: str, modo: str) -> bytearray:
     packet = b''
     packet += b'02'
     packet += nombrefichero.encode()
-    packet += b'0'
+    packet += b'\0'
     packet += modo.encode()
-    packet += b'0'
+    packet += b'\0'
     return packet
 
   def createDATA(self, numbloque: int, data: bytearray) -> bytearray:
@@ -140,7 +140,14 @@ class Server:
     packet += b'05'
     packet += codigoerror.encode()
     packet += mensajeerror.encode()
-    packet += b'0'
+    packet += b'\0'
+    return packet
+
+  def createOACK(self, blksize) -> bytearray:
+    packet = b''
+    packet += b'06'
+    packet += str(blksize).encode()
+    packet += b'\0'
     return packet
 
   def deserializeRQ(self, packet: bytearray):
