@@ -1,61 +1,77 @@
 from socket import *
 import os
+import math
 
 class Server:
 
   def __init__(self, serverPort, blockSize, timeout):
     self.socket = socket(AF_INET, SOCK_DGRAM)
     self.serverPort = serverPort
-    self.blockSize = blockSize
+    self.defaultBlockSize = 512
+    self.blockSize = self.defaultBlockSize
     self.timeout = timeout
     self.clientAddr = None
     self.socket.bind(('', self.serverPort))
 
   def setupHandler(self):
-    data = self.recvPacket(4)
-    packetType = data[:2]
-    filename = data.decode('utf-8')[2:2+data[2:].decode().index('\0')]
+    while True:
+      data = self.recvPacket(4)
 
-    if packetType == b'01':
-      print('GET')
-      self.handleGET(filename)
-      print('Ended sending file:', filename, 'to client:', self.clientAddr)
-    elif packetType == b'02':
-      print('PUT')
-      self.handlePUT(filename)
-      print('Ended reciving file:', filename, 'from client:', self.clientAddr)
+      print(data)
+      
+      packetData = self.deserializeRQ(data)
+      packetType = packetData[0]
+      filename = packetData[1]
+      mode = packetData[2]
+      if len(packetData) == 5:
+        self.blockSize = int(packetData[4])
+
+      print(packetType, filename, mode)
+
+      if packetType == '01':
+        print('GET')
+        self.handleGET(filename)
+        print('Ended sending file:', filename, 'to client:', self.clientAddr)
+      elif packetType == '02':
+        print('PUT')
+        self.handlePUT(filename)
+        print('Ended reciving file:', filename, 'from client:', self.clientAddr)
+
+      self.blockSize = self.defaultBlockSize
 
 
   def handleGET(self, filename):
-
-    contador = 1
+    contadorPaquetesEnviados = 0
+    contadorACK = 1
 
     file = open(filename, "rb")
 
-    data = file.read(self.blockSize)
+    packets = self.howManyPackets(filename)
 
-    while data != b'':
-      packet = self.createDATA(contador, data)
+    while contadorPaquetesEnviados < packets:
+
+      data = file.read(self.blockSize)
+
+      packet = self.createDATA(contadorACK, data)
       self.sendPacket(packet)
 
       clientACK = self.recvPacket(4)
 
-      print('Num seq:', contador)
-      contador = (contador % pow(2, 16)) + 1
+      print('Num seq:', contadorACK)
+      contadorACK = (contadorACK % pow(2, 16)) + 1
+      contadorPaquetesEnviados += 1
 
-      data = file.read(self.blockSize)
+    if self.extraEmpty(filename):
+      packet = self.createDATA(contadorACK, b'')
+      self.sendPacket(packet)
 
-      if data == b'' and self.extraEmpty(filename):
-        packet = self.createDATA(contador, b'')
-        self.sendPacket(packet)
+    clientACK = self.recvPacket(4)
 
   def handlePUT(self, filename):
     packet = self.createACK(0)
     self.sendPacket(packet)
 
-    
-
-    file = open(filename, 'wb')
+    file = open(filename + ".2", 'wb')
 
     while True:
 
@@ -66,17 +82,19 @@ class Server:
 
       file.write(packetData)
 
-      packet = self.createACK(packetNum + 1)
+      packet = self.createACK(packetNum)
       self.sendPacket(packet)
-
 
       if len(data) < (self.blockSize + 4):
         file.close()
-        break
+        break        
 
 
   def extraEmpty(self, filename: str) -> bool:
     return (os.path.getsize(filename) % self.blockSize) == 0
+
+  def howManyPackets(self, filename: str) -> int:
+    return math.ceil(os.path.getsize(filename) / self.blockSize)
 
   def sendPacket(self, packet: bytearray) -> None:
     self.socket.sendto(packet, self.clientAddr)
@@ -124,6 +142,23 @@ class Server:
     packet += mensajeerror.encode()
     packet += b'0'
     return packet
+
+  def deserializeRQ(self, packet: bytearray):
+    packet = packet.decode('utf-8')
+    value = [packet[:2]]
+
+    last = 2
+    contador = 1
+    for i in range(2, len(packet)):
+      if packet[i] == '\0':
+        if contador == 1:
+          value.append(packet[last:i])
+        else:
+          value.append(packet[last+1:i])
+        contador += 1
+        last = i
+
+    return value
 
 
 def main():

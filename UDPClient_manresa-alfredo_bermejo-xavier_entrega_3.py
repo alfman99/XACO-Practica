@@ -1,5 +1,6 @@
 from socket import *
 import os
+import math
 
 class Client:
 
@@ -7,73 +8,80 @@ class Client:
     self.socket = socket(AF_INET, SOCK_DGRAM)
     self.serverAddr = serverAddr
     self.serverPort = serverPort
+    self.defaultBlockSize = 512
     self.blockSize = blockSize
     self.timeout = timeout
 
   def GET(self, filename: str, modo: str):
-    packet = self.createRRQ(filename, modo)
+    packet = self.createRRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
+    print(packet)
     self.sendPacket(packet)
-    data = self.recvPacket(4)
-    packetType = data[:2]
-    file = None
-    if packetType == b'03':
-      file = open(filename, "wb")
-    elif packetType == b'05':
-      print('error')
-      return
 
-    while data:
+    file = open(filename + ".2", "wb")
+
+    while True:
+      data = self.recvPacket(4)
       packetType = data[:2]
       packetNum = int.from_bytes(data[2:4], 'big')
       packetData = data[4:]
-      print('Num seq:', packetNum)
+
       if packetType == b'03':
-        # handle DATA packet
-        packet = self.createACK(packetNum + 1)
-        self.sendPacket(packet)
+        print('Num seq:', packetNum)
+
         file.write(packetData)
+
+        packet = self.createACK(packetNum)
+        self.sendPacket(packet)
+
         if len(data) < (self.blockSize + 4):
           file.close()
           break
-        else:
-          data = self.recvPacket(4)
 
       elif packetType == b'05':
-        # handle ERR packet
-        print('err')
+        print('error')
     
     print('Got file:', filename, 'from:', self.serverAddr, self.serverPort)
 
   def PUT(self, filename: str, modo: str):
-    packet = self.createWRQ(filename, modo)
+    packet = self.createWRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
     self.sendPacket(packet)
 
     serverACK = self.recvPacket(4)
-    packetType = serverACK[:2]
+    print('Server ACK (packet): ', serverACK)
+
+    contadorPaquetesEnviados = 0
+    contadorACK = 1
+
+    packets = self.howManyPackets(filename)
 
     file = open(filename, 'rb')
-    data = file.read(self.blockSize)
+    
+    while contadorPaquetesEnviados < packets:
 
-    contador = 1
-
-    while data:
+      data = file.read(self.blockSize)
       
-      packet = self.createDATA(contador, data)
+      packet = self.createDATA(contadorACK, data)
       self.sendPacket(packet)
 
       serverACK = self.recvPacket(4)
 
-      print('Num seq:', contador)
-      contador = (contador % pow(2, 16)) + 1
+      print('Num seq:', int.from_bytes(serverACK[2:4], 'big'))
+      
+      contadorACK = (contadorACK % pow(2, 16)) + 1
+      contadorPaquetesEnviados += 1
 
-      data = file.read(self.blockSize)
+    if self.extraEmpty(filename):
+      packet = self.createDATA(contadorACK, b'')
+      self.sendPacket(packet)
+      serverACK = self.recvPacket(4)
+      print('Num seq:', int.from_bytes(serverACK[2:4], 'big'))
 
-      if data == b'' and self.extraEmpty(filename):
-        packet = self.createDATA(contador, b'')
-        self.sendPacket(packet)
 
   def extraEmpty(self, filename: str) -> bool:
     return (os.path.getsize(filename) % self.blockSize) == 0
+
+  def howManyPackets(self, filename: str) -> int:
+    return math.ceil(os.path.getsize(filename) / self.blockSize)
 
   def sendPacket(self, packet: bytearray) -> None:
     self.socket.sendto(packet, (self.serverAddr, self.serverPort))
@@ -121,11 +129,65 @@ class Client:
     packet += b'\0'
     return packet
 
+  def createOPTIONS(self, options: list) -> bytearray:
+    packet = b''
+    for i in range(0, len(options), 2):
+      packet += options[i].encode()
+      packet += b'\0'
+      packet += options[i+1].encode()
+      packet += b'\0'
+    return packet
+
+  def deserializeRQ(self, packet: bytearray):
+    packet = packet.decode('utf-8')
+    value = [packet[:2]]
+
+    last = 2
+    contador = 1
+    for i in range(2, len(packet)):
+      if packet[i] == '\0':
+        if contador == 1:
+          value.append(packet[last:i])
+        else:
+          value.append(packet[last+1:i])
+        contador += 1
+        last = i
+
+    return value
+
 
 def main():
-  client = Client('localhost', 12000, 512, 1000)
-  # client.GET('a.txt', 'netascii')
-  client.PUT('a.txt', 'netascii')
+
+  ipServer = "localhost" #input('ip server: ')
+  portServer = 12000 #int(input('port server: '))
+
+  
+  try:
+    command = "GET a.txt 32" #input('Command: ')
+    params = command.split(' ')
+
+    if len(params) != 3:
+      print('Please use this format: <method> <filename> <blocksize>')
+      print('Methods: GET, PUT')
+      return
+    
+    method = params[0].upper()
+    filename = params[1]
+    blocksize = int(params[2])
+
+    client = Client(ipServer, portServer, blocksize, 1000)
+
+    if method == 'GET':
+      client.GET(filename, 'netascii')
+    elif method == 'PUT':
+      client.PUT(filename, 'netascii')
+    else:
+      print('That method doesn\'t exist')
+      
+
+  except KeyboardInterrupt:
+    print('Client closed')
+
 
 if __name__ == "__main__":
   main()
