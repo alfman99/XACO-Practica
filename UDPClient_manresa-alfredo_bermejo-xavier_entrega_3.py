@@ -318,23 +318,37 @@ class Client:
 
 def main():
 
-  ipServer = "127.0.0.1" #input('ip server: ')
+  ipServer = "127.0.0.1" #input('ip server: ') 
   portServer = 12000 #int(input('port server: '))
 
   try:
-    command = "PUT a.txt 32" #input('Command: ')
+    command = input('Command (<method> <filename> <blocksize> <timeout> <retryTimes>): ') #"PUT a.txt 32" 
     params = command.split(' ')
 
-    if len(params) != 3:
-      print('Please use this format: <method> <filename> <blocksize>')
-      print('Methods: GET, PUT')
+    if len(params) != 5:
+      print('Please use this format: <method> <filename> <blocksize> <timeout> <retryTimes>')
       return
-    
+
     method = params[0].upper()
     filename = params[1]
     blocksize = int(params[2])
+    timeout = int(params[3])
+    retryTimes = int(params[4])
+    
+    if blocksize != 32 and blocksize != 64 and blocksize != 128 and blocksize != 256 and blocksize != 512 and blocksize != 1024 and blocksize != 2048:
+      print('<blocksize> tiene que ser potencia de 2 (32 - 2048)')
+      return
 
-    client = Client(ipServer, portServer, blocksize, 0.5, 5)
+    if timeout < 1:
+      print('<timeout> tiene que ser mayor o igual a 1')
+      return
+
+    if retryTimes < 1:
+      print('<retryTimes> tiene que ser mayor o igual a 1')
+      return
+    
+
+    client = Client(ipServer, portServer, blocksize, timeout, retryTimes)
 
     if method == 'GET':
       client.GET(filename, 'netascii')
