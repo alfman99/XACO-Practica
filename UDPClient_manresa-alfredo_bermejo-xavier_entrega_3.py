@@ -1,17 +1,20 @@
 from socket import *
 import os
 import math
-import random
 
 class Client:
 
-  def __init__(self, serverAddr, serverPort, blockSize, timeout):
+  def __init__(self, serverAddr, serverPort, blockSize, timeout, maxRetries):
     self.socket = socket(AF_INET, SOCK_DGRAM)
     self.serverAddr = serverAddr
     self.serverPort = serverPort
     self.defaultBlockSize = 512
     self.blockSize = blockSize
     self.timeout = timeout
+    self.lastPacket = None
+    self.retryNumber = 0
+    self.maxRetries = maxRetries
+
 
   def GET(self, filename: str, modo: str):
     packet = self.createRRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
@@ -85,11 +88,24 @@ class Client:
     return math.ceil(os.path.getsize(filename) / self.blockSize)
 
   def sendPacket(self, packet: bytearray) -> None:
+    self.lastPacket = packet
     self.socket.sendto(packet, (self.serverAddr, self.serverPort))
 
   def recvPacket(self, headerSize: int) -> bytes:
-    data, _ = self.socket.recvfrom(self.blockSize + headerSize)
-    return data
+    self.socket.settimeout(self.timeout)
+    try:
+      data, _ = self.socket.recvfrom(self.blockSize + headerSize)
+      self.retryNumber = 0
+      return data
+    except timeout:
+      print('Timeout exceeded, resending packet...')
+      self.retryNumber += 1
+      if self.retryNumber <= self.maxRetries:
+        self.sendPacket(self.lastPacket)
+        return self.recvPacket(4)
+      else:
+        print('Max retries reached exiting client.')
+        exit(0)
 
   def createRRQ(self, nombrefichero: str, modo: str) -> bytearray:
     packet = b''
@@ -130,7 +146,7 @@ class Client:
     packet += b'\0'
     return packet
 
-  def createOACK(self, blksize) -> bytearray:
+  def createOACK(self, blksize: int) -> bytearray:
     packet = b''
     packet += b'06'
     packet += str(blksize).encode()
@@ -182,7 +198,7 @@ def main():
     filename = params[1]
     blocksize = int(params[2])
 
-    client = Client(ipServer, portServer, blocksize, 1000)
+    client = Client(ipServer, portServer, blocksize, 0.5, 5)
 
     if method == 'GET':
       client.GET(filename, 'netascii')

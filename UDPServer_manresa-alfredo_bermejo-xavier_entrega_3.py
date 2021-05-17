@@ -2,6 +2,8 @@ from socket import *
 import os
 import math
 
+triggerTimeout = True
+
 class Server:
 
   def __init__(self, serverPort, blockSize, timeout):
@@ -16,6 +18,7 @@ class Server:
   # Encargado de activar el bucle de recepcion de paquetes del cliente
   def setupHandler(self) -> None:
     while True:
+      
       data = self.recvPacket(4)
 
       print(data)
@@ -55,6 +58,9 @@ class Server:
       packet = self.createDATA(contadorACK, data)
       self.sendPacket(packet)
 
+      if triggerTimeout:
+        self.recvPacket(4)
+      
       clientACK = self.recvPacket(4)
       print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
       
@@ -73,6 +79,9 @@ class Server:
     file = open(filename, 'wb')
 
     while True:
+
+      if triggerTimeout:
+        self.recvPacket(4)
 
       data = self.recvPacket(4)
 
@@ -144,7 +153,7 @@ class Server:
     packet += b'\0'
     return packet
 
-  def createOACK(self, blksize) -> bytearray:
+  def createOACK(self, blksize: int) -> bytearray:
     packet = b''
     packet += b'06'
     packet += str(blksize).encode()
