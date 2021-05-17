@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from socket import *
 import os
 import math
 
-debugMode = False
+localMode = False
 
 class Client:
 
@@ -25,7 +28,7 @@ class Client:
 
     print('OACK packet: ', self.recvPacket(4))
 
-    if debugMode:
+    if localMode:
       filename = filename + ".client"
 
     file = open(filename, "wb")
@@ -70,7 +73,7 @@ class Client:
 
     packets = self.howManyPackets(filename)
 
-    if debugMode:
+    if localMode:
       filename = filename + ".client"
 
     file = open(filename, 'rb')
@@ -85,8 +88,6 @@ class Client:
       data = self.recvPacket(4)
 
       packetType = data[:2]
-
-      print('packetType')
 
       if packetType == b'05':
         errorType = data[2:4]

@@ -1,10 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from socket import *
 import os
 import math
 
-debugMode = False
-triggerTimeout = False
-discPle = True
+localMode = False
+triggerTimeout = True
+discPle = False
 
 class Server:
 
@@ -46,7 +49,7 @@ class Server:
     contadorPaquetesEnviados = 0
     contadorACK = 1
 
-    if debugMode:
+    if localMode:
       filename = filename + ".server"
     
     file = None
@@ -87,10 +90,10 @@ class Server:
 
   def handlePUT(self, filename: str) -> None:
 
-    if debugMode:
+    if localMode:
       filename = filename + ".server"
 
-    file = open(filename + ".2", 'wb')
+    file = open(filename, 'wb')
 
     while True:
 
