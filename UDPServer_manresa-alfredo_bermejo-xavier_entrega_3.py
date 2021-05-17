@@ -2,6 +2,7 @@ from socket import *
 import os
 import math
 
+__debug__ = False
 triggerTimeout = False
 discPle = True
 
