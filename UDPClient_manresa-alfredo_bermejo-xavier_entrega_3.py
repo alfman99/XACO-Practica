@@ -2,7 +2,7 @@ from socket import *
 import os
 import math
 
-__debug__ = False
+debugMode = False
 
 class Client:
 
@@ -25,7 +25,7 @@ class Client:
 
     print('OACK packet: ', self.recvPacket(4))
 
-    if __debug__:
+    if debugMode:
       filename = filename + ".client"
 
     file = open(filename, "wb")
@@ -70,7 +70,7 @@ class Client:
 
     packets = self.howManyPackets(filename)
 
-    if __debug__:
+    if debugMode:
       filename = filename + ".client"
 
     file = open(filename, 'rb')

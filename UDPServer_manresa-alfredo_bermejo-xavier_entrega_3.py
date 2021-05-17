@@ -2,7 +2,7 @@ from socket import *
 import os
 import math
 
-__debug__ = False
+debugMode = False
 triggerTimeout = False
 discPle = True
 
@@ -46,7 +46,7 @@ class Server:
     contadorPaquetesEnviados = 0
     contadorACK = 1
 
-    if __debug__:
+    if debugMode:
       filename = filename + ".server"
     
     file = None
@@ -87,7 +87,7 @@ class Server:
 
   def handlePUT(self, filename: str) -> None:
 
-    if __debug__:
+    if debugMode:
       filename = filename + ".server"
 
     file = open(filename + ".2", 'wb')
