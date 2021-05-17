@@ -13,7 +13,8 @@ class Server:
     self.clientAddr = None
     self.socket.bind(('', self.serverPort))
 
-  def setupHandler(self):
+  # Encargado de activar el bucle de recepcion de paquetes del cliente
+  def setupHandler(self) -> None:
     while True:
       data = self.recvPacket(4)
 
@@ -38,8 +39,8 @@ class Server:
 
       self.blockSize = self.defaultBlockSize
 
-
-  def handleGET(self, filename):
+  
+  def handleGET(self, filename: str) -> None:
     contadorPaquetesEnviados = 0
     contadorACK = 1
 
@@ -67,9 +68,9 @@ class Server:
     clientACK = self.recvPacket(4)
     print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
 
-  def handlePUT(self, filename):
+  def handlePUT(self, filename: str) -> None:
 
-    file = open(filename + ".2", 'wb')
+    file = open(filename, 'wb')
 
     while True:
 
@@ -150,7 +151,7 @@ class Server:
     packet += b'\0'
     return packet
 
-  def deserializeRQ(self, packet: bytearray):
+  def deserializeRQ(self, packet: bytearray) -> list[bytearray]:
     packet = packet.decode('utf-8')
     value = [packet[:2]]
 

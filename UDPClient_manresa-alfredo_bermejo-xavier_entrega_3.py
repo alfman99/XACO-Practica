@@ -20,7 +20,7 @@ class Client:
 
     print('OACK packet: ', self.recvPacket(4))
 
-    file = open(filename + ".2", "wb")
+    file = open(filename, "wb")
 
     while True:
       data = self.recvPacket(4)
@@ -146,7 +146,7 @@ class Client:
       packet += b'\0'
     return packet
 
-  def deserializeRQ(self, packet: bytearray):
+  def deserializeRQ(self, packet: bytearray) -> list[bytearray]:
     packet = packet.decode('utf-8')
     value = [packet[:2]]
 
@@ -162,7 +162,6 @@ class Client:
         last = i
 
     return value
-
 
 def main():
 
@@ -195,7 +194,6 @@ def main():
 
   except KeyboardInterrupt:
     print('Client closed')
-
 
 if __name__ == "__main__":
   main()
