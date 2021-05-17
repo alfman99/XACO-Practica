@@ -5,7 +5,7 @@ from socket import *
 import os
 import math
 
-localMode = False
+localMode = True
 triggerTimeout = True
 discPle = False
 
@@ -20,8 +20,12 @@ class Server:
     self.clientAddr = None
     self.socket.bind(('', self.serverPort))
 
-  # Encargado de activar el bucle de recepcion de paquetes del cliente
   def setupHandler(self) -> None:
+    """
+    Descripción:
+      Encargado de activar el bucle de recepcion de paquetes del cliente
+    """
+    
     while True:
       
       data = self.recvPacket(4)
@@ -46,11 +50,13 @@ class Server:
       self.blockSize = self.defaultBlockSize
   
   def handleGET(self, filename: str) -> None:
+    """
+    Descripción:
+      Encargado de hacer el proceso de enviar un archivo al cliente trozo por trozo
+    """
+
     contadorPaquetesEnviados = 0
     contadorACK = 1
-
-    if localMode:
-      filename = filename + ".server"
     
     file = None
     try:
@@ -89,6 +95,10 @@ class Server:
     print('Ended sending file:', filename, 'to client:', self.clientAddr)
 
   def handlePUT(self, filename: str) -> None:
+    """
+    Descripción:
+      Encargado de hacer el proceso de recibir un archivo del cliente trozo por trozo
+    """
 
     if localMode:
       filename = filename + ".server"
@@ -125,38 +135,73 @@ class Server:
     print('Ended reciving file:', filename, 'from client:', self.clientAddr)  
 
   def extraEmpty(self, filename: str) -> bool:
+    """
+    Descripción:
+      Indicar si hay que mandar un archivo vacio para la finalización explicita de la subida  
+
+    Parametros:
+      filename (str): nombre del archivo que queremos comprobar si es multiplo del tamaño del paquete
+
+    Return:
+      Si hay que terminar de manera explicita o no
+    """
+    
     return (os.path.getsize(filename) % self.blockSize) == 0
 
   def howManyPackets(self, filename: str) -> int:
+    """
+    Descripción:
+      Indica cuantos paquetes harán falta para enviar el archivo al servidor 
+
+    Parametros:
+      filename (str): nombre del archivo que queremos ver en cuantos paquetes se debe mandar
+    
+    Return:
+      Numero de paquetes maximo en el que se puede dividir el archivo
+    """
+
     return math.ceil(os.path.getsize(filename) / self.blockSize)
 
   def sendPacket(self, packet: bytearray) -> None:
+    """
+    Descripción:
+      Manda el paquete al cliente
+
+    Parametros:
+      packet (bytearray): bytes del paquete que se quiere enviar
+    """
+
     self.socket.sendto(packet, self.clientAddr)
 
   def recvPacket(self, headerSize: int) -> bytes:
+    """
+    Descripción:
+      Recibe un paquete del cliente
+
+    Parametros:
+      headerSize (int): tamaño extra de la cabecera
+
+    Return:
+      Datos recibidos del cliente
+    """
+    
     data, clientAddr = self.socket.recvfrom(self.blockSize + headerSize)
     self.clientAddr = clientAddr
     return data
 
-  def createRRQ(self, nombrefichero: str, modo: str) -> bytearray:
-    packet = b''
-    packet += b'01'
-    packet += nombrefichero.encode()
-    packet += b'\0'
-    packet += modo.encode()
-    packet += b'\0'
-    return packet
-
-  def createWRQ(self, nombrefichero: str, modo: str) -> bytearray:
-    packet = b''
-    packet += b'02'
-    packet += nombrefichero.encode()
-    packet += b'\0'
-    packet += modo.encode()
-    packet += b'\0'
-    return packet
-
   def createDATA(self, numbloque: int, data: bytearray) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete DATA con los parametros dados
+
+    Parametros:
+      numbloque (int): numero de bloque
+      data (bytearray): array de bytes que queremos mandar
+
+    Return:
+      Paquete de datos en forma de array de bytes
+    """
+
     packet = b''
     packet += b'03'
     packet += numbloque.to_bytes(2, 'big')
@@ -164,12 +209,35 @@ class Server:
     return packet
 
   def createACK(self, numbloque: int) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete ACK con los parametros dados
+
+    Parametros:
+      numbloque (int): numero de bloque
+
+    Return:
+      Paquete de ACK en forma de array de bytes
+    """
+
     packet = b''
     packet += b'04'
     packet += numbloque.to_bytes(2, 'big')
     return packet
 
   def createERROR(self, codigoerror: str, mensajeerror: str) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete ACK con los parametros dados
+
+    Parametros:
+      numbloque (int): numero de bloque
+      mensajeerror (str): mensaje de error
+
+    Return:
+      Paquete de ERROR en forma de array de bytes
+    """
+
     packet = b''
     packet += b'05'
     packet += codigoerror.encode()
@@ -178,6 +246,17 @@ class Server:
     return packet
 
   def createOACK(self, blksize: int) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete OACK con los parametros dados
+
+    Parametros:
+      blksize (int): negociacion del tamaño del bloque
+
+    Return:
+      Paquete de OACK en forma de array de bytes
+    """
+
     packet = b''
     packet += b'06'
     packet += str(blksize).encode()
@@ -185,6 +264,17 @@ class Server:
     return packet
 
   def deserializeRQ(self, packet: bytearray) -> list[bytearray]:
+    """
+    Descripción:
+      Coge el paquete RQ y lo transforma en un lista con todos los datos del RQ (request), sirve tanto para WRQ como RRQ
+
+    Parametros:
+      packet (bytearray): paquete tanto WRQ como RRQ que queremos transformar en una lista
+
+    Return:
+      Lista con todos los datos de la request por campos para mas facil acceso
+    """
+
     packet = packet.decode('utf-8')
     value = [packet[:2]]
 

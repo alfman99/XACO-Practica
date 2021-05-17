@@ -5,7 +5,7 @@ from socket import *
 import os
 import math
 
-localMode = False
+localMode = True
 
 class Client:
 
@@ -21,7 +21,16 @@ class Client:
     self.maxRetries = maxRetries
 
 
-  def GET(self, filename: str, modo: str):
+  def GET(self, filename: str, modo: str) -> None:
+    """
+    Descripción:
+      Procesar la función GET, descargando trozo por trozo del servidor el archivo pedido  
+
+    Parametros:
+      filename (str): nombre del archivo que queremos descargar del servidor
+      modo (str): Modo de la descarga del archivo (netascii / octal), solamente está implementada la opción de netascii
+    """
+
     packet = self.createRRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
     print(packet)
     self.sendPacket(packet)
@@ -60,7 +69,16 @@ class Client:
     
     print('Got file:', filename, 'from:', self.serverAddr, self.serverPort)
 
-  def PUT(self, filename: str, modo: str):
+  def PUT(self, filename: str, modo: str) -> None:
+    """
+    Descripción:
+      Procesa la función POST, subir trozo por trozo al servidor el archivo  
+
+    Parametros:
+      filename (str): nombre del archivo que queremos subir del servidor
+      modo (str): Modo de la subida del archivo (netascii / octal), solamente está implementada la opción de netascii
+    """
+
     packet = self.createWRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
     self.sendPacket(packet)
 
@@ -72,9 +90,6 @@ class Client:
     contadorACK = 1
 
     packets = self.howManyPackets(filename)
-
-    if localMode:
-      filename = filename + ".client"
 
     file = open(filename, 'rb')
     
@@ -108,16 +123,58 @@ class Client:
       print('Num seq:', int.from_bytes(data[2:4], 'big'))
 
   def extraEmpty(self, filename: str) -> bool:
+    """
+    Descripción:
+      Indicar si hay que mandar un archivo vacio para la finalización explicita de la subida  
+
+    Parametros:
+      filename (str): nombre del archivo que queremos comprobar si es multiplo del tamaño del paquete
+
+    Return:
+      Si hay que terminar de manera explicita o no
+    """
+
     return (os.path.getsize(filename) % self.blockSize) == 0
 
   def howManyPackets(self, filename: str) -> int:
+    """
+    Descripción:
+      Indica cuantos paquetes harán falta para enviar el archivo al servidor 
+
+    Parametros:
+      filename (str): nombre del archivo que queremos ver en cuantos paquetes se debe mandar
+    
+    Return:
+      Numero de paquetes maximo en el que se puede dividir el archivo
+    """
+
     return math.ceil(os.path.getsize(filename) / self.blockSize)
 
   def sendPacket(self, packet: bytearray) -> None:
+    """
+    Descripción:
+      Guarda el ultimo paquete enviado en una variable y lo manda al servidor  
+
+    Parametros:
+      packet (bytearray): bytes del paquete que se quiere enviar
+    """
+
     self.lastPacket = packet
     self.socket.sendto(packet, (self.serverAddr, self.serverPort))
 
   def recvPacket(self, headerSize: int) -> bytes:
+    """
+    Descripción:
+      Recibe un paquete desde el servidor, también se encarga de administrar el timeout, porque lo que si el
+      timeout se excede en el tiempo definido, reenviará el ultimo paquete enviado previamente.
+
+    Parametros:
+      headerSize (int): tamaño extra de la cabecera
+
+    Return:
+      Datos recividos del servidor
+    """
+    
     self.socket.settimeout(self.timeout)
     try:
       data, _ = self.socket.recvfrom(self.blockSize + headerSize)
@@ -134,6 +191,18 @@ class Client:
         exit(0)
 
   def createRRQ(self, nombrefichero: str, modo: str) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete RRQ con los parametros dados
+
+    Parametros:
+      nombrefichero (str): nombre del fichero que queremos leer
+      modo (str): Modo de la subida del archivo (netascii / octal), solamente está implementada la opción de netascii
+
+    Return:
+      Paquete GET en forma de array de bytes
+    """
+
     packet = b''
     packet += b'01'
     packet += nombrefichero.encode()
@@ -143,6 +212,18 @@ class Client:
     return packet
 
   def createWRQ(self, nombrefichero: str, modo: str) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete WRQ con los parametros dados
+
+    Parametros:
+      nombrefichero (str): nombre del fichero que queremos escribir
+      modo (str): Modo de la subida del archivo (netascii / octal), solamente está implementada la opción de netascii
+
+    Return:
+      Paquete PUT en forma de array de bytes
+    """
+
     packet = b''
     packet += b'02'
     packet += nombrefichero.encode()
@@ -152,6 +233,18 @@ class Client:
     return packet
 
   def createDATA(self, numbloque: int, data: bytearray) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete DATA con los parametros dados
+
+    Parametros:
+      numbloque (int): numero de bloque
+      data (bytearray): array de bytes que queremos mandar
+
+    Return:
+      Paquete de datos en forma de array de bytes
+    """
+
     packet = b''
     packet += b'03'
     packet += numbloque.to_bytes(2, 'big')
@@ -159,27 +252,34 @@ class Client:
     return packet
 
   def createACK(self, numbloque: int) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete ACK con los parametros dados
+
+    Parametros:
+      numbloque (int): numero de bloque
+
+    Return:
+      Paquete de ACK en forma de array de bytes
+    """
+
     packet = b''
     packet += b'04'
     packet += numbloque.to_bytes(2, 'big')
     return packet
 
-  def createERROR(self, codigoerror: str, mensajeerror: str) -> bytearray:
-    packet = b''
-    packet += b'05'
-    packet += codigoerror.encode()
-    packet += mensajeerror.encode()
-    packet += b'\0'
-    return packet
-
-  def createOACK(self, blksize: int) -> bytearray:
-    packet = b''
-    packet += b'06'
-    packet += str(blksize).encode()
-    packet += b'\0'
-    return packet
-
   def createOPTIONS(self, options: list) -> bytearray:
+    """
+    Descripción:
+      Forja el paquete OPTIONS con los parametros dados
+
+    Parametros:
+      options (list): array con pares de opciones, ejemplo: (['blksize', 512])
+
+    Return:
+      Paquete de OPTIONS en forma de array de bytes
+    """
+
     packet = b''
     for i in range(0, len(options), 2):
       packet += options[i].encode()
@@ -189,6 +289,17 @@ class Client:
     return packet
 
   def deserializeRQ(self, packet: bytearray) -> list[bytearray]:
+    """
+    Descripción:
+      Coge el paquete RQ y lo transforma en un lista con todos los datos del RQ (request), sirve tanto para WRQ como RRQ
+
+    Parametros:
+      packet (bytearray): paquete tanto WRQ como RRQ que queremos transformar en una lista
+
+    Return:
+      Lista con todos los datos de la request por campos para mas facil acceso
+    """
+
     packet = packet.decode('utf-8')
     value = [packet[:2]]
 
