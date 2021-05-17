@@ -2,6 +2,8 @@ from socket import *
 import os
 import math
 
+__debug__ = False
+
 class Client:
 
   def __init__(self, serverAddr, serverPort, blockSize, timeout, maxRetries):
@@ -22,6 +24,9 @@ class Client:
     self.sendPacket(packet)
 
     print('OACK packet: ', self.recvPacket(4))
+
+    if __debug__:
+      filename = filename + ".client"
 
     file = open(filename, "wb")
 
@@ -44,7 +49,11 @@ class Client:
           break
 
       elif packetType == b'05':
-        print('error')
+        errorType = data[2:4]
+        errorMessage = data[4:]
+        print('Server Error')
+        print('Error Code:', errorType.decode('utf-8'), 'Message:', errorMessage.decode('utf-8'))
+        return
     
     print('Got file:', filename, 'from:', self.serverAddr, self.serverPort)
 
@@ -52,12 +61,17 @@ class Client:
     packet = self.createWRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
     self.sendPacket(packet)
 
-    print('OACK packet: ', self.recvPacket(4))
+    data = self.recvPacket(4)
+
+    print('OACK packet: ', data)
 
     contadorPaquetesEnviados = 0
     contadorACK = 1
 
     packets = self.howManyPackets(filename)
+
+    if __debug__:
+      filename = filename + ".client"
 
     file = open(filename, 'rb')
     
@@ -68,9 +82,20 @@ class Client:
       packet = self.createDATA(contadorACK, data)
       self.sendPacket(packet)
 
-      serverACK = self.recvPacket(4)
+      data = self.recvPacket(4)
 
-      print('Num seq:', int.from_bytes(serverACK[2:4], 'big'))
+      packetType = data[:2]
+
+      print('packetType')
+
+      if packetType == b'05':
+        errorType = data[2:4]
+        errorMessage = data[4:]
+        print('Server Error')
+        print('Error Code:', errorType.decode('utf-8'), 'Message:', errorMessage.decode('utf-8'))
+        return
+
+      print('Num seq:', int.from_bytes(data[2:4], 'big'))
       
       contadorACK = (contadorACK % pow(2, 16)) + 1
       contadorPaquetesEnviados += 1
@@ -78,8 +103,8 @@ class Client:
     if self.extraEmpty(filename):
       packet = self.createDATA(contadorACK, b'')
       self.sendPacket(packet)
-      serverACK = self.recvPacket(4)
-      print('Num seq:', int.from_bytes(serverACK[2:4], 'big'))
+      data = self.recvPacket(4)
+      print('Num seq:', int.from_bytes(data[2:4], 'big'))
 
   def extraEmpty(self, filename: str) -> bool:
     return (os.path.getsize(filename) % self.blockSize) == 0
@@ -184,9 +209,8 @@ def main():
   ipServer = "127.0.0.1" #input('ip server: ')
   portServer = 12000 #int(input('port server: '))
 
-  
   try:
-    command = "GET a.txt 32" #input('Command: ')
+    command = "PUT a.txt 32" #input('Command: ')
     params = command.split(' ')
 
     if len(params) != 3:

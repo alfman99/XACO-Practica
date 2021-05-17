@@ -2,7 +2,8 @@ from socket import *
 import os
 import math
 
-triggerTimeout = True
+triggerTimeout = False
+discPle = True
 
 class Server:
 
@@ -34,20 +35,26 @@ class Server:
       if packetType == '01':
         print('GET')
         self.handleGET(filename)
-        print('Ended sending file:', filename, 'to client:', self.clientAddr)
       elif packetType == '02':
         print('PUT')
         self.handlePUT(filename)
-        print('Ended reciving file:', filename, 'from client:', self.clientAddr)
 
       self.blockSize = self.defaultBlockSize
-
   
   def handleGET(self, filename: str) -> None:
     contadorPaquetesEnviados = 0
     contadorACK = 1
 
-    file = open(filename, "rb")
+    if __debug__:
+      filename = filename + ".server"
+    
+    file = None
+    try:
+      file = open(filename, "rb")
+    except FileNotFoundError:
+      print('Error, File does not exist')
+      self.sendPacket(self.createERROR('01', 'File does not exist'))
+      return
 
     packets = self.howManyPackets(filename)
 
@@ -67,16 +74,22 @@ class Server:
       contadorACK = (contadorACK % pow(2, 16)) + 1
       contadorPaquetesEnviados += 1
 
+    file.close()
+
     if self.extraEmpty(filename):
       packet = self.createDATA(contadorACK, b'')
       self.sendPacket(packet)
-
-    clientACK = self.recvPacket(4)
-    print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
+      clientACK = self.recvPacket(4)
+      print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
+    
+    print('Ended sending file:', filename, 'to client:', self.clientAddr)
 
   def handlePUT(self, filename: str) -> None:
 
-    file = open(filename, 'wb')
+    if __debug__:
+      filename = filename + ".server"
+
+    file = open(filename + ".2", 'wb')
 
     while True:
 
@@ -84,6 +97,12 @@ class Server:
         self.recvPacket(4)
 
       data = self.recvPacket(4)
+
+      print(data)
+
+      if discPle:
+        self.sendPacket(self.createERROR('03', 'Disk full'))
+        return
 
       packetNum = int.from_bytes(data[2:4], 'big')
       packetData = data[4:]
@@ -97,8 +116,9 @@ class Server:
 
       if len(data) < (self.blockSize + 4):
         file.close()
-        break        
+        break      
 
+    print('Ended reciving file:', filename, 'from client:', self.clientAddr)  
 
   def extraEmpty(self, filename: str) -> bool:
     return (os.path.getsize(filename) % self.blockSize) == 0
