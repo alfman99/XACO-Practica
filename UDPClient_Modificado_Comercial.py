@@ -47,17 +47,15 @@ class Client:
 
     self.sendPacket(self.createACK(0))
 
-    print(self.serverPort)
-
     file = open(filename, "wb")
 
     while True:
       data = self.recvPacket(4)
-      packetType = data[:2]
+      packetType = int.from_bytes(data[:2], 'big')
       packetNum = int.from_bytes(data[2:4], 'big')
       packetData = data[4:]
 
-      if packetType == b'03':
+      if packetType == 3:
         print('Num seq:', packetNum)
 
         file.write(packetData)
@@ -69,7 +67,7 @@ class Client:
           file.close()
           break
 
-      elif packetType == b'05':
+      elif packetType == 5:
         errorType = data[2:4]
         errorMessage = data[4:]
         print('Server Error')
@@ -188,6 +186,7 @@ class Client:
     try:
       data, (_, self.serverPort) = self.socket.recvfrom(self.blockSize + headerSize)
       self.retryNumber = 0
+      print(data)
       return data
     except timeout:
       print('Timeout exceeded, resending packet...')
