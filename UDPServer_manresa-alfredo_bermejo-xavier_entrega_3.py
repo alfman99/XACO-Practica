@@ -5,8 +5,8 @@ from socket import *
 import os
 import math
 
-localMode = True
-triggerTimeout = True
+localMode = False
+triggerTimeout = False
 discPle = False
 
 class Server:
@@ -25,6 +25,8 @@ class Server:
     Descripción:
       Encargado de activar el bucle de recepcion de paquetes del cliente
     """
+    
+    print ('Servidor listo esperando conexion del cliente...')
     
     while True:
       
@@ -81,7 +83,7 @@ class Server:
       clientACK = self.recvPacket(4)
       print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
       
-      contadorACK = (contadorACK % pow(2, 16)) + 1
+      contadorACK = (contadorACK % (pow(2, 16)-1)) + 1
       contadorPaquetesEnviados += 1
 
     file.close()
@@ -111,8 +113,6 @@ class Server:
         self.recvPacket(4)
 
       data = self.recvPacket(4)
-
-      print(data)
 
       if discPle:
         self.sendPacket(self.createERROR('03', 'Disk full'))
@@ -263,7 +263,7 @@ class Server:
     packet += b'\0'
     return packet
 
-  def deserializeRQ(self, packet: bytearray) -> list[bytearray]:
+  def deserializeRQ(self, packet: bytearray):
     """
     Descripción:
       Coge el paquete RQ y lo transforma en un lista con todos los datos del RQ (request), sirve tanto para WRQ como RRQ
