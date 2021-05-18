@@ -37,10 +37,19 @@ class Client:
     """
 
     packet = self.createRRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
-    print(packet)
     self.sendPacket(packet)
 
-    print('OACK packet: ', self.recvPacket(4))
+    data = self.recvPacket(4)
+    packetType = int.from_bytes(data[:2], 'big')
+
+    if packetType == 6:
+      print('OACK packet: ', data)
+    elif packetType == 5:
+      errorType = int.from_bytes(data[2:4], 'big') 
+      errorMessage = data[4:]
+      print('Server Error')
+      print('Error Code:', str(errorType), 'Message:', errorMessage.decode('utf-8'))
+      return
 
     if localMode:
       filename = filename + ".client"
@@ -91,7 +100,16 @@ class Client:
 
     data = self.recvPacket(4)
 
-    print('OACK packet: ', data)
+    packetType = int.from_bytes(data[:2], 'big')
+
+    if packetType == 6:
+      print('OACK packet: ', data)
+    elif packetType == 5:
+      errorType = int.from_bytes(data[2:4], 'big') 
+      errorMessage = data[4:]
+      print('Server Error')
+      print('Error Code:', str(errorType), 'Message:', errorMessage.decode('utf-8'))
+      return
 
     contadorPaquetesEnviados = 0
     contadorACK = 1
