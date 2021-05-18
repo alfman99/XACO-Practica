@@ -5,7 +5,7 @@ from socket import *
 import os
 import math
 
-localMode = True
+localMode = False
 
 class Client:
 
@@ -28,7 +28,7 @@ class Client:
 
     Parametros:
       filename (str): nombre del archivo que queremos descargar del servidor
-      modo (str): Modo de la descarga del archivo (netascii / octal), solamente está implementada la opción de netascii
+      modo (str): Modo de la descarga del archivo (netascii / octet), solamente está implementada la opción de octet
     """
 
     packet = self.createRRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
@@ -76,7 +76,7 @@ class Client:
 
     Parametros:
       filename (str): nombre del archivo que queremos subir del servidor
-      modo (str): Modo de la subida del archivo (netascii / octal), solamente está implementada la opción de netascii
+      modo (str): Modo de la subida del archivo (netascii / octet), solamente está implementada la opción de octet
     """
 
     packet = self.createWRQ(filename, modo) + self.createOPTIONS(['blksize', str(self.blockSize)])
@@ -113,7 +113,7 @@ class Client:
 
       print('Num seq:', int.from_bytes(data[2:4], 'big'))
       
-      contadorACK = (contadorACK % pow(2, 16)) + 1
+      contadorACK = (contadorACK % (pow(2, 16)-1)) + 1
       contadorPaquetesEnviados += 1
 
     if self.extraEmpty(filename):
@@ -197,7 +197,7 @@ class Client:
 
     Parametros:
       nombrefichero (str): nombre del fichero que queremos leer
-      modo (str): Modo de la subida del archivo (netascii / octal), solamente está implementada la opción de netascii
+      modo (str): Modo de la subida del archivo (netascii / octet), solamente está implementada la opción de octet
 
     Return:
       Paquete GET en forma de array de bytes
@@ -218,7 +218,7 @@ class Client:
 
     Parametros:
       nombrefichero (str): nombre del fichero que queremos escribir
-      modo (str): Modo de la subida del archivo (netascii / octal), solamente está implementada la opción de netascii
+      modo (str): Modo de la subida del archivo (netascii / octet), solamente está implementada la opción de octet
 
     Return:
       Paquete PUT en forma de array de bytes
@@ -288,7 +288,7 @@ class Client:
       packet += b'\0'
     return packet
 
-  def deserializeRQ(self, packet: bytearray) -> list[bytearray]:
+  def deserializeRQ(self, packet: bytearray):
     """
     Descripción:
       Coge el paquete RQ y lo transforma en un lista con todos los datos del RQ (request), sirve tanto para WRQ como RRQ
@@ -318,7 +318,7 @@ class Client:
 
 def main():
 
-  ipServer = "127.0.0.1" #input('ip server: ') 
+  ipServer = "localhost" #input('ip server: ') 
   portServer = 12000 #int(input('port server: '))
 
   try:
@@ -351,9 +351,9 @@ def main():
     client = Client(ipServer, portServer, blocksize, timeout, retryTimes)
 
     if method == 'GET':
-      client.GET(filename, 'netascii')
+      client.GET(filename, 'octet')
     elif method == 'PUT':
-      client.PUT(filename, 'netascii')
+      client.PUT(filename, 'octet')
     else:
       print('That method doesn\'t exist')
       
