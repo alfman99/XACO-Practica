@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+####
+####  Importante este cliente NO funciona con nuestro Servidor, solamente funciona con servidores comerciales tal como:
+####    - Tftpd64
+####
+
 from socket import *
 import os
 import math
@@ -39,6 +44,10 @@ class Client:
 
     if localMode:
       filename = filename + ".client"
+
+    self.sendPacket(self.createACK(0))
+
+    print(self.serverPort)
 
     file = open(filename, "wb")
 
@@ -158,7 +167,7 @@ class Client:
     Parametros:
       packet (bytearray): bytes del paquete que se quiere enviar
     """
-
+    
     self.lastPacket = packet
     self.socket.sendto(packet, (self.serverAddr, self.serverPort))
 
@@ -177,7 +186,7 @@ class Client:
     
     self.socket.settimeout(self.timeout)
     try:
-      data, _ = self.socket.recvfrom(self.blockSize + headerSize)
+      data, (_, self.serverPort) = self.socket.recvfrom(self.blockSize + headerSize)
       self.retryNumber = 0
       return data
     except timeout:
@@ -204,7 +213,7 @@ class Client:
     """
 
     packet = b''
-    packet += b'01'
+    packet += int(1).to_bytes(2, 'big')
     packet += nombrefichero.encode()
     packet += b'\0'
     packet += modo.encode()
@@ -225,7 +234,7 @@ class Client:
     """
 
     packet = b''
-    packet += b'02'
+    packet += int(2).to_bytes(2, 'big')
     packet += nombrefichero.encode()
     packet += b'\0'
     packet += modo.encode()
@@ -246,7 +255,7 @@ class Client:
     """
 
     packet = b''
-    packet += b'03'
+    packet += int(3).to_bytes(2, 'big')
     packet += numbloque.to_bytes(2, 'big')
     packet += data
     return packet
@@ -264,7 +273,7 @@ class Client:
     """
 
     packet = b''
-    packet += b'04'
+    packet += int(4).to_bytes(2, 'big')
     packet += numbloque.to_bytes(2, 'big')
     return packet
 
@@ -316,10 +325,11 @@ class Client:
 
     return value
 
+
 def main():
 
-  ipServer = "localhost" #input('ip server: ') 
-  portServer = 12000 #int(input('port server: '))
+  ipServer = "localhost"#input('ip server: ')
+  portServer = 69 #int(input('port server: '))
 
   try:
     command = input('Command (<method> <filename> <blocksize> <timeout> <retryTimes>): ') #"PUT a.txt 32" 
@@ -335,7 +345,7 @@ def main():
     timeout = int(params[3])
     retryTimes = int(params[4])
     
-    if blocksize != 32 and blocksize != 64 and blocksize != 128 and blocksize != 256 and blocksize != 512 and blocksize != 1024 and blocksize != 2048:
+    if blocksize != 32 and blocksize != 64 and blocksize != 128 and blocksize != 256 and blocksize != 512 and blocksize != 1024 and blocksize != 2048 and blocksize != 4096 and blocksize != 8192:
       print('<blocksize> tiene que ser potencia de 2 (32 - 2048)')
       return
 
