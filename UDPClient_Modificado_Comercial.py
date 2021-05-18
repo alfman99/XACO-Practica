@@ -10,7 +10,7 @@ from socket import *
 import os
 import math
 
-localMode = False
+localMode = True
 
 class Client:
 
@@ -69,12 +69,12 @@ class Client:
 
         file.write(packetData)
 
-        packet = self.createACK(packetNum)
-        self.sendPacket(packet)
-
         if len(data) < (self.blockSize + 4):
           file.close()
           break
+
+        packet = self.createACK(packetNum)
+        self.sendPacket(packet)
 
       elif packetType == 5:
         errorType = data[2:4]
@@ -204,7 +204,6 @@ class Client:
     try:
       data, (_, self.serverPort) = self.socket.recvfrom(self.blockSize + headerSize)
       self.retryNumber = 0
-      print(data)
       return data
     except timeout:
       print('Timeout exceeded, resending packet...')
@@ -314,39 +313,11 @@ class Client:
       packet += b'\0'
     return packet
 
-  def deserializeRQ(self, packet: bytearray):
-    """
-    Descripción:
-      Coge el paquete RQ y lo transforma en un lista con todos los datos del RQ (request), sirve tanto para WRQ como RRQ
-
-    Parametros:
-      packet (bytearray): paquete tanto WRQ como RRQ que queremos transformar en una lista
-
-    Return:
-      Lista con todos los datos de la request por campos para mas facil acceso
-    """
-
-    packet = packet.decode('utf-8')
-    value = [packet[:2]]
-
-    last = 2
-    contador = 1
-    for i in range(2, len(packet)):
-      if packet[i] == '\0':
-        if contador == 1:
-          value.append(packet[last:i])
-        else:
-          value.append(packet[last+1:i])
-        contador += 1
-        last = i
-
-    return value
-
 
 def main():
 
   ipServer = "localhost"#input('ip server: ')
-  portServer = 69 #int(input('port server: '))
+  portServer = 12000 #int(input('port server: '))
 
   try:
     command = input('Command (<method> <filename> <blocksize> <timeout> <retryTimes>): ') #"PUT a.txt 32" 
