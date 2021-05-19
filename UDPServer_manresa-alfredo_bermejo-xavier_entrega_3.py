@@ -98,7 +98,7 @@ class Server:
       clientACK = self.recvPacket(4)
       print('Num seq:', int.from_bytes(clientACK[2:4], 'big'))
       
-      contadorACK = (contadorACK % (pow(2, 16)-1)) + 1
+      contadorACK = (contadorACK % pow(2, 16)) + 1
       contadorPaquetesEnviados += 1
 
     file.close()

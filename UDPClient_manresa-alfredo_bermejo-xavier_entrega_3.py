@@ -138,7 +138,7 @@ class Client:
 
       print('Num seq:', int.from_bytes(data[2:4], 'big'))
       
-      contadorACK = (contadorACK % (pow(2, 16)-1)) + 1
+      contadorACK = (contadorACK % pow(2, 16)) + 1
       contadorPaquetesEnviados += 1
 
     if self.extraEmpty(filename):
@@ -317,7 +317,7 @@ class Client:
 def main():
 
   ipServer = "localhost"#input('ip server: ')
-  portServer = 12000 #int(input('port server: '))
+  portServer = 69 #int(input('port server: '))
 
   try:
     command = input('Command (<method> <filename> <blocksize> <timeout> <retryTimes>): ') #"PUT a.txt 32" 
