@@ -334,7 +334,7 @@ def main():
     retryTimes = int(params[4])
     
     if blocksize != 32 and blocksize != 64 and blocksize != 128 and blocksize != 256 and blocksize != 512 and blocksize != 1024 and blocksize != 2048 and blocksize != 4096 and blocksize != 8192:
-      print('<blocksize> tiene que ser potencia de 2 (32 - 2048)')
+      print('<blocksize> tiene que ser potencia de 2 (32 - 8192)')
       return
 
     if timeout < 1:
