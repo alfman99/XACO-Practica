@@ -77,10 +77,10 @@ class Client:
         self.sendPacket(packet)
 
       elif packetType == 5:
-        errorType = data[2:4]
+        errorType = int.from_bytes(data[2:4], 'big') 
         errorMessage = data[4:]
         print('Server Error')
-        print('Error Code:', errorType.decode('utf-8'), 'Message:', errorMessage.decode('utf-8'))
+        print('Error Code:', str(errorType), 'Message:', errorMessage.decode('utf-8'))
         return
     
     print('Got file:', filename, 'from:', self.serverAddr, self.serverPort)
@@ -130,10 +130,10 @@ class Client:
       packetType = data[:2]
 
       if packetType == b'05':
-        errorType = data[2:4]
+        errorType = int.from_bytes(data[2:4], 'big') 
         errorMessage = data[4:]
         print('Server Error')
-        print('Error Code:', errorType.decode('utf-8'), 'Message:', errorMessage.decode('utf-8'))
+        print('Error Code:', str(errorType), 'Message:', errorMessage.decode('utf-8'))
         return
 
       print('Num seq:', int.from_bytes(data[2:4], 'big'))
