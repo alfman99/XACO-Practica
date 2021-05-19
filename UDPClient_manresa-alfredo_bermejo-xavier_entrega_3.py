@@ -316,8 +316,8 @@ class Client:
 
 def main():
 
-  ipServer = "localhost"#input('ip server: ')
-  portServer = 69 #int(input('port server: '))
+  ipServer = input('ip server: ')
+  portServer = int(input('port server: '))
 
   try:
     command = input('Command (<method> <filename> <blocksize> <timeout> <retryTimes>): ') #"PUT a.txt 32" 

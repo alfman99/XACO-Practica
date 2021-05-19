@@ -309,7 +309,8 @@ class Server:
 
 
 def main():
-  server = Server(12000, 512, 1000)
+  port = int(input('Port to listen to:'))
+  server = Server(port, 512, 1000)
   server.setupHandler()
 
 if __name__ == "__main__":
