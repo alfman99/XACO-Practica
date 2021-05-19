@@ -5,7 +5,7 @@ from socket import *
 import os
 import math
 
-localMode = True
+localMode = False
 triggerTimeout = False
 discPle = False
 

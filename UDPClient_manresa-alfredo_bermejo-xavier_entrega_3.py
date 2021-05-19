@@ -10,7 +10,7 @@ from socket import *
 import os
 import math
 
-localMode = True
+localMode = False
 
 class Client:
 
@@ -354,6 +354,8 @@ def main():
       client.PUT(filename, 'octet')
     else:
       print('That method doesn\'t exist')
+
+    input("Enter para cerrar...")
       
 
   except KeyboardInterrupt:
